@@ -1,179 +1,335 @@
-<!DOCTYPE HTML>
-<html manifest="cache.appcache">
-<head>
-	<title>捉鬼特攻隊 國語期末考複習</title>
-	<meta name="Author" content="gsyan, , 2012.12.15">
-	<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
-	<meta name="apple-mobile-web-app-capable" content="yes" />
-    <link rel="apple-touch-icon" href="assets/icon.png"/>
-	<!-- STARTUP IMAGES -->
-	<!-- startup image for web apps - iPad - landscape (748x1024) 
-		Note: iPad landscape startup image has to be exactly 748x1024 pixels (portrait, with contents rotated).-->
-	<link rel="apple-touch-startup-image" href="assets/startup-ipad-l.png" media="screen and (min-device-width: 481px) and (max-device-width: 1024px) and (orientation:landscape)" />
-	
-	<!-- startup image for web apps - iPad - portrait (768x1004) -->
-	<link rel="apple-touch-startup-image" href="assets/startup-ipad-p.png" media="screen and (min-device-width: 481px) and (max-device-width: 1024px) and (orientation:portrait)" />
+<html><head><base href="." />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>複習遊戲</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(135deg, #b1e6fc 0%, #e6f7ff 100%);
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+  }
 
-	<!-- startup image for web apps (320x460) -->
-	<link rel="apple-touch-startup-image" href="assets/startup.png" media="screen and (max-device-width: 320px)" />
-	<style>
-		body {
-			color: #000000;
-			background: #ffffff;
-		}
-	</style>	
+  h1 {
+    color: #2c3e50;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+  }
+
+  .game-container {
+    display: flex;
+    gap: 40px;
+    margin-top: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  }
+
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .item {
+    padding: 12px 25px;
+    background: white;
+    border: 2px solid #4a90e2;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 150px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .item:hover {
+    background: #e3f2fd;
+    transform: translateY(-2px);
+  }
+
+  .item.selected {
+    background: #4a90e2;
+    color: white;
+  }
+
+  .item.correct {
+    background: #4caf50;
+    color: white;
+    border-color: #4caf50;
+  }
+
+  .score-panel, .level-panel, .timer {
+    background: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-size: 1.2em;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  button.reset {
+    padding: 12px 25px;
+    background: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1em;
+    margin-top: 25px;
+    transition: all 0.3s;
+    box-shadow: 0 4px 8px rgba(74,144,226,0.3);
+  }
+
+  button.reset:hover {
+    background: #357abd;
+    transform: translateY(-2px);
+  }
+
+  .game-over, .level-complete {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    text-align: center;
+    display: none;
+  }
+
+  .creator {
+    text-align: center;
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 1.2em;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    margin-top: 20px;
+  }
+</style>
 </head>
 <body>
-   	<script type="text/javascript">
-		(function(name,callback){
+  <h1>社會複習遊戲</h1>
+  <div class="level-panel">
+    關卡: <span id="level">1</span> / 5
+  </div>
+  <div class="timer">時間: <span id="time">0</span> 秒</div>
+  <div class="score-panel">
+    正確配對: <span id="score">0</span> / 6
+  </div>
+  <div class="game-container">
+    <div class="column" id="countries"></div>
+    <div class="column" id="capitals"></div>
+  </div>
+  <button class="reset" onclick="resetGame()">重新開始</button>
+  <div class="creator">昌昌教室</div>
+  <div class="level-complete" id="levelComplete">
+    <h2>完成關卡！</h2>
+    <p>進入下一關</p>
+    <button class="reset" onclick="nextLevel()">繼續</button>
+  </div>
+  <div class="game-over" id="gameOver">
+    <h2>恭喜完成所有關卡！</h2>
+    <p>你用了 <span id="finalTime">0</span> 秒完成遊戲</p>
+    <button class="reset" onclick="resetGame()">再玩一次</button>
+  </div>
 
-			//取得網址中的某一個參數(已編碼過的)
-			var gup = function( name ){
-				name = name.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");  
-				var regexS = "[\\?&]"+name+"=([^&#]*)";  
-				var regex = new RegExp( regexS );  
-				var results = regex.exec( window.location.href ); 
-				if( results == null )    return "";  
-				else    return results[1];
-			}
-			//add by gsyan
-			//load websocket injection first then load LimeJS
-			var loadInjection = function(callback) {
-				var script = document.createElement('script');
-				script.setAttribute('type','text/javascript');
-				script.onload = function(){
-					if(typeof(callback) == 'function') {
-						injection(callback);
-					} else {
-						injection();
-					}
-				};
-				script.setAttribute('src','injection-speech.js');
-				document.getElementsByTagName('head')[0].appendChild(script);
-			};
-			
-			var getObjectByName = function(name, opt_obj) {
-				var parts = name.split('.');
-				var cur = opt_obj || window;
-				for (var part; part = parts.shift(); ) {
-					if (cur[part]) {
-						cur = cur[part];
-					} else {
-						return null;
-					}
-				}
-				return cur;
-			};
+<script>
+const pairs = [
+  ["陳志昌", "帥哥"],
+  ["英國", "倫敦"],
+  ["法國", "巴黎"],
+  ["德國", "柏林"],
+  ["日本", "東京"],
+  ["中國", "北京"],
+  ["義大利", "羅馬"],
+  ["加拿大", "渥太華"],
+  ["澳洲", "坎培拉"],
+  ["西班牙", "馬德里"],
+  ["俄羅斯", "莫斯科"],
+  ["巴西", "巴西利亞"],
+  ["韓國", "首爾"],
+  ["印度", "新德里"],
+  ["墨西哥", "墨西哥城"],
+  ["瑞典", "斯德哥爾摩"],
+  ["挪威", "奧斯陸"],
+  ["芬蘭", "赫爾辛基"],
+  ["泰國", "曼谷"],
+  ["中華民國", "台北"],
+  ["葡萄牙", "里斯本"],
+  ["希臘", "雅典"],
+  ["奧地利", "維也納"],
+  ["瑞士", "伯恩"],
+  ["荷蘭", "阿姆斯特丹"],
+  ["比利時", "布魯塞爾"],
+  ["丹麥", "哥本哈根"],
+  ["愛爾蘭", "都柏林"],
+  ["紐西蘭", "威靈頓"],
+  ["越南", "河內"]
+];
 
-			//add by gsyan
-			//if username not empty 
-			//load websocket injection first then load LimeJS
-			//or skip all injection code
-			function loadJS(call){
-				//var username=gup('username');
-				//if(username && username!='') {	//injection loader
-					loadInjection( function() {
-						loadLimeJS(call);
-					});
-				//} else { //normal loader
-				//	loadLimeJS(call);
-				//}
-			};			
+let selectedCountry = null;
+let selectedCapital = null;
+let correctPairs = 0;
+let startTime = null;
+let timerInterval;
+let currentLevel = 1;
+let usedPairs = new Set();
+let currentLevelPairs = [];
 
-			//function loadJS(call){ 
-			function loadLimeJS(call) { //change the oringal loadJS to loadImeJS
-				var script = document.createElement('script');
-				script.setAttribute('type','text/javascript');
-				script.onload = function(){
-					(getObjectByName(callback))();
-					call();
-				};
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
-				script.setAttribute('src',name);
-				document.getElementsByTagName('head')[0].appendChild(script);
-			}
+function getRandomPairs(count) {
+  let availablePairs = pairs.filter(pair => !usedPairs.has(pair[0]));
+  let selectedPairs = availablePairs.slice(0, count);
+  selectedPairs.forEach(pair => usedPairs.add(pair[0]));
+  return selectedPairs;
+}
 
-			var webappCache = window.applicationCache;
+function createGame() {
+  const countriesDiv = document.getElementById('countries');
+  const capitalsDiv = document.getElementById('capitals');
+  
+  currentLevelPairs = getRandomPairs(6);
+  
+  let countries = currentLevelPairs.map(pair => pair[0]);
+  let capitals = currentLevelPairs.map(pair => pair[1]);
+  
+  countries = shuffle([...countries]);
+  capitals = shuffle([...capitals]);
+  
+  countries.forEach(country => {
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.textContent = country;
+    div.onclick = () => selectCountry(div);
+    countriesDiv.appendChild(div);
+  });
+  
+  capitals.forEach(capital => {
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.textContent = capital;
+    div.onclick = () => selectCapital(div);
+    capitalsDiv.appendChild(div);
+  });
+}
 
-			if(webappCache && window.navigator.userAgent.indexOf('WebKit') != -1){
+function selectCountry(element) {
+  if (element.classList.contains('correct')) return;
+  if (selectedCountry) selectedCountry.classList.remove('selected');
+  element.classList.add('selected');
+  selectedCountry = element;
+  checkPair();
+}
 
-				var WIDTH = 200,
-					HEIGHT = 100;
+function selectCapital(element) {
+  if (element.classList.contains('correct')) return;
+  if (selectedCapital) selectedCapital.classList.remove('selected');
+  element.classList.add('selected');
+  selectedCapital = element;
+  checkPair();
+}
 
-				var scripts = document.getElementsByTagName('script');
-				var script = scripts[scripts.length-1];
-				var el = document.createElement('div');
-				var parent = script.parentNode;
-				if(parent.style.position!='absolute' && parent.style.position!='relative'){
-					parent.style.cssText = 'relative';
-				}
-				var pwidth = window.innerWidth;
-				var pheight = window.innerHeight;
-				el.style.cssText = 'text-align:center;width:'+WIDTH+'px;height:'+HEIGHT+'px;position:absolute;left:'+Math.round((pwidth-WIDTH)*.5)+'px;top:'+Math.round((pheight-HEIGHT)*.5)+'px';
-				script.parentNode.insertBefore(el,script);
-				script.parentNode.removeChild(script);
+function checkPair() {
+  if (!selectedCountry || !selectedCapital) return;
+  
+  if (!startTime) {
+    startTime = Date.now();
+    startTimer();
+  }
+  
+  const country = selectedCountry.textContent;
+  const capital = selectedCapital.textContent;
+  
+  const isCorrect = currentLevelPairs.some(pair => pair[0] === country && pair[1] === capital);
+  
+  if (isCorrect) {
+    selectedCountry.classList.add('correct');
+    selectedCapital.classList.add('correct');
+    selectedCountry.classList.remove('selected');
+    selectedCapital.classList.remove('selected');
+    selectedCountry = null;
+    selectedCapital = null;
+    correctPairs++;
+    document.getElementById('score').textContent = correctPairs;
+    
+    if (correctPairs === 6) {
+      if (currentLevel === 5) {
+        gameOver();
+      } else {
+        levelComplete();
+      }
+    }
+  }
+}
 
-				var started = 0;
+function levelComplete() {
+  document.getElementById('levelComplete').style.display = 'block';
+}
 
-				var close = function(){
-					if(started) return;
-					el.innerHTML = 'Starting';
-					loadJS(function(){
-						el.parentNode.removeChild(el);
-					});
-					started=1;
-					clearTimeout(timeout);
-				};
+function nextLevel() {
+  currentLevel++;
+  document.getElementById('level').textContent = currentLevel;
+  document.getElementById('levelComplete').style.display = 'none';
+  document.getElementById('countries').innerHTML = '';
+  document.getElementById('capitals').innerHTML = '';
+  document.getElementById('score').textContent = '0';
+  correctPairs = 0;
+  selectedCountry = null;
+  selectedCapital = null;
+  createGame();
+}
 
-				var timeout = setTimeout(function(){close()},2000);
+function startTimer() {
+  timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById('time').textContent = elapsed;
+  }, 1000);
+}
 
-				webappCache.addEventListener('checking', function(){
-					//console.log('checking');
-					el.innerHTML = 'Initializing';
-					},false);
+function gameOver() {
+  clearInterval(timerInterval);
+  const finalTime = Math.floor((Date.now() - startTime) / 1000);
+  document.getElementById('finalTime').textContent = finalTime;
+  document.getElementById('gameOver').style.display = 'block';
+}
 
-				webappCache.addEventListener('cached', function(){
-					//console.log('cached');
-					close();
-				},false);
+function resetGame() {
+  document.getElementById('countries').innerHTML = '';
+  document.getElementById('capitals').innerHTML = '';
+  document.getElementById('score').textContent = '0';
+  document.getElementById('time').textContent = '0';
+  document.getElementById('level').textContent = '1';
+  document.getElementById('gameOver').style.display = 'none';
+  document.getElementById('levelComplete').style.display = 'none';
+  
+  selectedCountry = null;
+  selectedCapital = null;
+  correctPairs = 0;
+  startTime = null;
+  currentLevel = 1;
+  usedPairs.clear();
+  
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+  
+  createGame();
+}
 
-				webappCache.addEventListener('noupdate', function(){
-					//console.log('noupdate');
-					close();
-				},false);
-
-				webappCache.addEventListener('updateready', function(){
-					//console.log('updateready');
-					webappCache.swapCache();
-					close();
-				},false);
-/*
-			webappCache.addEventListener('downloading', function(){
-					clearTimeout(timeout);
-				},false);
-
-				webappCache.addEventListener('progress', function(e){
-					console.log('progress '+e.loaded+'/'+e.total);
-					el.innerHTML = 'Loading '+e.loaded+'/'+e.total;
-				},false);
-*/
-				webappCache.addEventListener('obsolete', function(){
-					//console.log('obsolete')
-					close();
-				}, false);
-
-				webappCache.addEventListener('error', function(e){
-					//console.log('error');
-					close();
-				}, false);
-			}
-			else {
-				loadJS(function(){});
-			}
-
-		})('ghost.js','ghost.start');
-
-		</script>
-</body>
-
-</html>
+createGame();
+</script>
+<script src="https://www.drv.tw/inc/wd.js?s=happy-playing-with-ais"></script></body></html>
